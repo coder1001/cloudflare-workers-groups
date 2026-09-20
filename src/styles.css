@@ -1,0 +1,236 @@
+/*
+ * In der Liste selbst wird bewusst mit `color: inherit` und halbtransparenten
+ * Flaechen gearbeitet: so passt sich die UI dem hellen wie dem dunklen
+ * Dashboard-Theme an, ohne dessen Theme-Zustand kennen zu muessen.
+ */
+
+/* ------------------------------------------------------------- Toolbar */
+
+.cfwg-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+  padding: 8px 10px;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 8px;
+  background: rgba(128, 128, 128, 0.06);
+  font: 500 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: inherit;
+}
+
+.cfwg-brand {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.cfwg-stats { font-size: 12px; opacity: 0.7; }
+.cfwg-spacer { flex: 1 1 auto; }
+
+.cfwg-btn {
+  padding: 5px 10px;
+  border: 1px solid rgba(128, 128, 128, 0.4);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.cfwg-btn:hover { background: rgba(128, 128, 128, 0.15); }
+
+.cfwg-btn-primary {
+  border-color: #f6821f;
+  background: #f6821f;
+  color: #1b1b1b;
+  font-weight: 600;
+}
+.cfwg-btn-primary:hover { background: #ff9436; }
+
+/* -------------------------------------------------------- Gruppen-Header */
+
+.cfwg-header-row { background: transparent !important; }
+.cfwg-header-row > td { padding: 0 !important; border: 0 !important; }
+
+.cfwg-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 10px 0 2px;
+  padding: 6px 8px;
+  border: 0;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.25);
+  background: transparent;
+  color: inherit;
+  font: 600 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+.cfwg-header:hover { background: rgba(128, 128, 128, 0.1); }
+
+.cfwg-caret {
+  display: inline-block;
+  width: 10px;
+  font-size: 11px;
+  opacity: 0.6;
+  transition: transform 0.12s ease;
+}
+.cfwg-caret-collapsed { transform: rotate(-90deg); }
+
+.cfwg-header-name { flex: 1 1 auto; }
+
+.cfwg-count {
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: rgba(128, 128, 128, 0.2);
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.cfwg-dot {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+
+/* ---------------------------------------------------------------- Modal */
+
+.cfwg-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.cfwg-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(760px, 100%);
+  max-height: 85vh;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #1d1d1f;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  font: 13px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.cfwg-modal-head,
+.cfwg-modal-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+}
+.cfwg-modal-head { border-bottom: 1px solid rgba(128, 128, 128, 0.25); }
+.cfwg-modal-foot { border-top: 1px solid rgba(128, 128, 128, 0.25); }
+
+.cfwg-modal-title { margin: 0; font-size: 15px; font-weight: 700; flex: 1 1 auto; }
+
+.cfwg-x {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.6;
+}
+.cfwg-x:hover { opacity: 1; }
+
+.cfwg-section { padding: 14px 18px; overflow: auto; }
+.cfwg-section + .cfwg-section {
+  border-top: 1px solid rgba(128, 128, 128, 0.2);
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.cfwg-h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.65; }
+.cfwg-h3row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.cfwg-h3row .cfwg-h3 { margin: 0; flex: 1 1 auto; }
+
+.cfwg-input {
+  padding: 5px 8px;
+  border: 1px solid rgba(128, 128, 128, 0.45);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.cfwg-search { width: 190px; }
+.cfwg-group-name { flex: 1 1 auto; }
+.cfwg-assign { width: 170px; }
+.cfwg-bulk { width: 170px; }
+
+.cfwg-grouprow,
+.cfwg-addrow,
+.cfwg-prow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+.cfwg-addrow { margin-top: 8px; }
+.cfwg-addrow .cfwg-input { flex: 1 1 auto; }
+
+.cfwg-prow + .cfwg-prow { border-top: 1px solid rgba(128, 128, 128, 0.15); }
+.cfwg-thead {
+  margin-bottom: 4px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.3);
+}
+.cfwg-plist { max-height: 46vh; overflow: auto; }
+
+.cfwg-type {
+  flex: 0 0 auto;
+  min-width: 52px;
+  padding: 1px 6px;
+  border: 1px solid rgba(128, 128, 128, 0.35);
+  border-radius: 4px;
+  font-size: 10px;
+  text-align: center;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.cfwg-pname {
+  flex: 1 1 auto;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+.cfwg-muted { opacity: 0.6; font-size: 12px; }
+.cfwg-check { width: 14px; height: 14px; cursor: pointer; }
+
+.cfwg-icon {
+  width: 24px;
+  height: 24px;
+  border: 1px solid rgba(128, 128, 128, 0.35);
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+.cfwg-icon:hover { background: rgba(128, 128, 128, 0.15); }
+.cfwg-danger:hover { background: #d64545; color: #fff; border-color: #d64545; }
+
+@media (prefers-color-scheme: dark) {
+  .cfwg-modal { background: #1f2023; color: #e9e9ea; }
+  .cfwg-input { background: #2a2b2f; }
+  .cfwg-input option { background: #2a2b2f; color: #e9e9ea; }
+}

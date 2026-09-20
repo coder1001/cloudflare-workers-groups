@@ -1,0 +1,107 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Mock: Workers &amp; Pages</title>
+<style>
+  body { font: 14px system-ui; margin: 24px; background: #fff; color: #1d1d1f; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 8px; text-align: left; border-bottom: 1px solid #eee; }
+  .wrap { max-width: 900px; }
+</style>
+
+<div class="wrap">
+  <h1>Workers &amp; Pages</h1>
+  <table>
+    <thead><tr><th>Name</th><th>Typ</th><th>Zuletzt</th></tr></thead>
+    <tbody id="list"></tbody>
+  </table>
+  <div id="list-div" style="display:none;flex-direction:column"></div>
+</div>
+
+<script>
+  // --- chrome.storage-Shim (In-Memory), damit die Content-Skripte laufen ---
+  // localStorage-backed, damit Persistenz ueber Reload testbar ist
+  const mem = JSON.parse(localStorage.getItem('__mem') || '{}');
+  const persist = () => localStorage.setItem('__mem', JSON.stringify(mem));
+  const listeners = [];
+  window.chrome = {
+    runtime: { lastError: null },
+    storage: {
+      sync: {
+        get(keys, cb) {
+          let out = {};
+          if (keys === null) out = { ...mem };
+          else for (const k of [].concat(keys)) if (k in mem) out[k] = mem[k];
+          cb(out);
+        },
+        set(obj, cb) {
+          const changes = {};
+          for (const [k, v] of Object.entries(obj)) {
+            changes[k] = { oldValue: mem[k], newValue: v };
+            mem[k] = v;
+          }
+          persist();
+          cb && cb();
+          listeners.forEach((l) => l(changes, "sync"));
+        },
+        clear(cb) { for (const k of Object.keys(mem)) delete mem[k]; persist(); cb && cb(); },
+      },
+      onChanged: { addListener: (l) => listeners.push(l) },
+    },
+  };
+
+  const ACC = location.pathname.split("/")[1];
+  const PROJECTS = [
+    ["shop-a-api", "worker"], ["shop-a-web", "pages"],
+    ["shop-b-api", "worker"], ["shop-b-web", "pages"],
+    ["monitoring", "worker"], ["cron-runner", "worker"],
+    ["docs-site", "pages"], ["image-resizer", "worker"],
+  ];
+
+  // ?layout=div rendert dieselbe Liste als Flex-Container statt als Tabelle
+  const DIV_LAYOUT = new URLSearchParams(location.search).get("layout") === "div";
+  const tbody = document.getElementById("list");
+  const divList = document.getElementById("list-div");
+  const host = DIV_LAYOUT ? divList : tbody;
+
+  if (DIV_LAYOUT) {
+    document.querySelector("table").style.display = "none";
+    divList.style.display = "flex";
+  }
+
+  window.__render = (projects) => {
+    host.innerHTML = "";
+    for (const [name, type] of projects) {
+      const href = type === "pages"
+        ? `/${ACC}/pages/view/${name}`
+        : `/${ACC}/workers/services/view/${name}/production`;
+      if (DIV_LAYOUT) {
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex;gap:12px;padding:8px;border-bottom:1px solid #eee";
+        row.innerHTML = `<a href="${href}">${name}</a><span>${type}</span>`;
+        host.appendChild(row);
+      } else {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td><a href="${href}">${name}</a></td><td>${type}</td><td>vor 2 Tagen</td>`;
+        host.appendChild(tr);
+      }
+    }
+  };
+  window.__render(PROJECTS);
+
+  // Test-Hook: Reihenfolge inkl. Gruppen-Header auslesen
+  window.__order = () =>
+    [...host.children].map((el) =>
+      el.dataset.cfwg === "header"
+        ? "## " + el.querySelector(".cfwg-header-name").textContent +
+          " (" + el.querySelector(".cfwg-count").textContent + ")" +
+          (el.querySelector(".cfwg-caret-collapsed") ? " [zu]" : "")
+        : (el.style.display === "none" ? "- " : "  ") +
+          el.querySelector("a").textContent
+    );
+</script>
+
+<script src="/_static/src/storage.js"></script>
+<script src="/_static/src/dom.js"></script>
+<script src="/_static/src/ui.js"></script>
+<script src="/_static/src/content.js"></script>
+<link rel="stylesheet" href="/_static/src/styles.css" />

@@ -1,0 +1,59 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Cloudflare Workers Groups</title>
+<style>
+  body {
+    width: 260px;
+    margin: 0;
+    padding: 14px;
+    font: 13px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: #fff;
+    color: #1d1d1f;
+  }
+  h1 { margin: 0 0 10px; font-size: 13px; }
+  .row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .spacer { flex: 1 1 auto; }
+  button {
+    padding: 5px 10px;
+    border: 1px solid rgba(128, 128, 128, 0.45);
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  button:hover { background: rgba(128, 128, 128, 0.15); }
+  .muted { opacity: 0.65; font-size: 11px; }
+  #status { min-height: 16px; margin-top: 8px; font-size: 11px; opacity: 0.8; }
+  input[type="file"] { display: none; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #1f2023; color: #e9e9ea; }
+  }
+</style>
+
+<h1>Cloudflare Workers Groups</h1>
+
+<div class="row">
+  <label for="enabled">Gruppierung aktiv</label>
+  <span class="spacer"></span>
+  <input type="checkbox" id="enabled" />
+</div>
+
+<div class="row">
+  <button id="export">Export</button>
+  <button id="import">Import</button>
+  <span class="spacer"></span>
+  <button id="reset">Reset</button>
+</div>
+
+<p class="muted">
+  Gruppen liegen in chrome.storage.sync und synchronisieren ueber dein
+  Chrome-Profil. Cloudflare selbst wird nicht veraendert.
+</p>
+
+<div id="status"></div>
+<input type="file" id="file" accept="application/json" />
+
+<script src="../src/storage.js"></script>
+<script src="popup.js"></script>

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!--
+    Vereinfachte Fassung fuer 16/32 px: Verbinder und Einrueckungsmarker
+    verschwinden dort zu Matsch, die Gruppierung traegt allein ueber die
+    Einrueckung der beiden unteren Balken.
+  -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FBAD41"/>
+      <stop offset="55%" stop-color="#F6821F"/>
+      <stop offset="100%" stop-color="#E4761B"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="128" height="128" rx="26" fill="url(#bg)"/>
+
+  <g fill="#fff">
+    <rect x="24" y="27" width="80" height="21" rx="10.5"/>
+    <rect x="46" y="58" width="58" height="19" rx="9.5" opacity="0.8"/>
+    <rect x="46" y="87" width="58" height="19" rx="9.5" opacity="0.8"/>
+  </g>
+</svg>
