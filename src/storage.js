@@ -57,9 +57,15 @@
       return {
         groups: Array.isArray(d[KEY_GROUPS]) ? d[KEY_GROUPS] : [],
         assign: d[assignKey(accountId)] || {},
+        // Gespeichertes UI durchreichen und nur Pflichtfelder absichern –
+        // eine feste Feldliste hier verschluckt sonst jede neue Einstellung.
         ui: {
+          ...ui,
           collapsed: ui.collapsed || {},
           enabled: ui.enabled !== false,
+          // Standard an: die seitenweise Ansicht zeigt eine Gruppe auf jeder
+          // Seite erneut und dort ggf. leer – das verwirrt mehr als es nutzt.
+          allPages: ui.allPages !== false,
         },
       };
     },

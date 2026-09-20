@@ -15,6 +15,13 @@
     <tbody id="list"></tbody>
   </table>
   <div id="list-div" style="display:none;flex-direction:column"></div>
+  <!-- wie im echten Dashboard: Liste und Pagination als Geschwister -->
+  <div id="cards-wrap" style="display:none;flex-direction:column;gap:16px">
+    <ul id="list-cards" class="list-none! m-0 grid gap-4"></ul>
+    <div id="pager" style="display:flex;gap:8px;align-items:center">
+      <button>Zurück</button><span>Seite 1 von 2</span><button>Weiter</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -58,14 +65,22 @@
   ];
 
   // ?layout=div rendert dieselbe Liste als Flex-Container statt als Tabelle
-  const DIV_LAYOUT = new URLSearchParams(location.search).get("layout") === "div";
+  const LAYOUT = new URLSearchParams(location.search).get("layout") || "table";
+  const DIV_LAYOUT = LAYOUT === "div";
+  const CARD_LAYOUT = LAYOUT === "cards";
   const tbody = document.getElementById("list");
   const divList = document.getElementById("list-div");
-  const host = DIV_LAYOUT ? divList : tbody;
+  const cardList = document.getElementById("list-cards");
+  const host = CARD_LAYOUT ? cardList : DIV_LAYOUT ? divList : tbody;
 
-  if (DIV_LAYOUT) {
+  if (DIV_LAYOUT || CARD_LAYOUT) {
     document.querySelector("table").style.display = "none";
-    divList.style.display = "flex";
+  }
+  if (DIV_LAYOUT) divList.style.display = "flex";
+  if (CARD_LAYOUT) {
+    document.getElementById("cards-wrap").style.display = "flex";
+    cardList.style.display = "grid";
+    cardList.style.cssText += ";list-style:none;margin:0;padding:0;gap:16px";
   }
 
   window.__render = (projects) => {
@@ -74,7 +89,22 @@
       const href = type === "pages"
         ? `/${ACC}/pages/view/${name}`
         : `/${ACC}/workers/services/view/${name}/production`;
-      if (DIV_LAYOUT) {
+      if (CARD_LAYOUT) {
+        // Aufbau wie im echten Dashboard: LI > Card > Overlay-Link,
+        // dazu ein zweiter Link auf dieselbe Ressource (/deployments)
+        const li = document.createElement("li");
+        li.className = "min-w-0";
+        li.innerHTML =
+          `<div class="min-w-0 text-base ring rounded-lg overflow-hidden">` +
+            `<div class="relative rounded-lg ring" style="padding:16px;border:1px solid #e5e5e5">` +
+              `<a class="absolute inset-0" href="${href}" style="position:absolute;inset:0"></a>` +
+              `<span style="font-weight:600">${name}</span>` +
+              `<div style="opacity:.6;font-size:12px">${type}</div>` +
+              `<a href="${href}/deployments" style="position:relative;font-size:12px">View deployments \u2197</a>` +
+            `</div>` +
+          `</div>`;
+        host.appendChild(li);
+      } else if (DIV_LAYOUT) {
         const row = document.createElement("div");
         row.style.cssText = "display:flex;gap:12px;padding:8px;border-bottom:1px solid #eee";
         row.innerHTML = `<a href="${href}">${name}</a><span>${type}</span>`;
@@ -96,11 +126,13 @@
           " (" + el.querySelector(".cfwg-count").textContent + ")" +
           (el.querySelector(".cfwg-caret-collapsed") ? " [zu]" : "")
         : (el.style.display === "none" ? "- " : "  ") +
-          el.querySelector("a").textContent
+          (el.querySelector("span[style]")?.textContent ||
+           el.querySelector("a")?.textContent)
     );
 </script>
 
 <script src="/_static/src/storage.js"></script>
+<script src="/_static/src/api.js"></script>
 <script src="/_static/src/dom.js"></script>
 <script src="/_static/src/ui.js"></script>
 <script src="/_static/src/content.js"></script>

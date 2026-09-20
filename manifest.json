@@ -20,6 +20,7 @@
       ],
       "js": [
         "src/storage.js",
+        "src/api.js",
         "src/dom.js",
         "src/ui.js",
         "src/content.js"

@@ -16,8 +16,24 @@
   let observer = null;
   let pending = null;
   let lastSignature = "";
+  let lastFound = null;
+  let remote = { projects: [], errors: [], loaded: false };
+  let fullList = null;   // eigener Container, wenn "Alle Seiten" aktiv ist
+  let hidden = [];       // von uns ausgeblendete Original-Elemente
 
   const UNGROUPED = "__ungrouped__";
+
+  /**
+   * Content-Skripte laufen in einer isolierten Welt und sind aus der
+   * Seitenkonsole nicht sichtbar. Das DOM teilen sich beide Welten – deshalb
+   * legen wir den Zustand als data-Attribute ab, damit sich von aussen pruefen
+   * laesst, ob und was die Extension erkannt hat.
+   */
+  function mark(key, value) {
+    try {
+      document.documentElement.dataset["cfwg" + key] = String(value);
+    } catch {}
+  }
 
   // ------------------------------------------------------------ Hilfsmittel
 
@@ -31,17 +47,57 @@
     }
   }
 
+  /**
+   * Alles, was der Nutzer zuordnen koennen soll: was auf dieser Seite steht
+   * plus alles, was die API kennt (andere Seiten der Liste).
+   */
+  function allProjects(found) {
+    const onPage = new Set((found?.rows || []).map((r) => r.key));
+    const byKey = new Map();
+
+    for (const row of found?.rows || []) {
+      byKey.set(row.key, { key: row.key, name: row.name, type: row.type, onPage: true });
+    }
+    // Der Typ aus der API ist geraten (der Overview-Endpunkt mischt Workers und
+    // Pages). Der Typ aus dem DOM stammt dagegen aus der Route und ist sicher –
+    // steht ein Name schon aus dem DOM da, gewinnt er, sonst gaebe es Dubletten.
+    const namesFromDom = new Set((found?.rows || []).map((r) => r.name));
+    for (const p of remote.projects) {
+      if (byKey.has(p.key) || namesFromDom.has(p.name)) continue;
+      byKey.set(p.key, { key: p.key, name: p.name, type: p.type, onPage: onPage.has(p.key) });
+    }
+    return [...byKey.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async function refreshRemote() {
+    if (!NS.api) return;
+    try {
+      const res = await NS.api.fetchAllProjects(accountId);
+      remote = { ...res, loaded: true };
+      mark("Remote", res.projects.length);
+      mark("Source", res.source || "?");
+      if (res.errors.length) mark("RemoteError", res.errors.join(" | "));
+    } catch (err) {
+      mark("RemoteError", err?.message || err);
+    }
+    lastSignature = "";
+    schedule();
+  }
+
   function signature(found) {
     return JSON.stringify({
       enabled: state.ui.enabled,
       groups: state.groups.map((g) => [g.id, g.name, g.color]),
       collapsed: state.ui.collapsed,
       rows: found.rows.map((r) => [r.key, state.assign[r.key] || ""]),
+      remote: remote.projects.length,
+      allPages: !!state.ui.allPages,
     });
   }
 
   function domIntact(found) {
     if (!found.container.isConnected) return false;
+    if (fullList && !fullList.isConnected) return false;
     if (toolbar && !toolbar.isConnected) return false;
     for (const h of headers.values()) if (!h.isConnected) return false;
     return true;
@@ -59,6 +115,7 @@
         row.removeAttribute("data-cfwg-row");
       }
       toolbar?.remove();
+      restoreNative();
     });
     toolbar = null;
     headers = new Map();
@@ -83,6 +140,14 @@
     schedule();
   }
 
+  async function setAllPages(on) {
+    state.ui = { ...state.ui, allPages: !!on };
+    await Store.saveUi(state.ui).catch(() => {});
+    if (!on) restoreNative();
+    lastSignature = "";
+    schedule();
+  }
+
   async function setAllCollapsed(collapsed) {
     const next = {};
     for (const g of state.groups) next[g.id] = collapsed;
@@ -93,22 +158,56 @@
     schedule();
   }
 
+  /**
+   * Blendet Cloudflares eigene Liste samt Pagination aus. Bewusst ueber
+   * display:none statt Entfernen: React verwaltet diese Knoten weiter, und
+   * beim Zurueckschalten ist der Originalzustand exakt wiederhergestellt.
+   */
+  function hideNative(container) {
+    // Die Liste selbst und alles, was ihr folgt (dort sitzt die Pagination).
+    // Bewusst nicht die vorangehenden Geschwister: da stehen Ueberschriften
+    // und Filter, die auszublenden die Seite kaputtaussehen laesst.
+    const targets = [container];
+    for (let el = container.nextElementSibling; el; el = el.nextElementSibling) {
+      if (!el.hasAttribute("data-cfwg")) targets.push(el);
+    }
+    for (const el of targets) {
+      if (el.hasAttribute("data-cfwg-hidden")) continue;
+      hidden.push({ el, display: el.style.display });
+      el.setAttribute("data-cfwg-hidden", "1");
+      el.style.display = "none";
+    }
+  }
+
+  function restoreNative() {
+    for (const { el, display } of hidden) {
+      el.style.display = display || "";
+      el.removeAttribute("data-cfwg-hidden");
+    }
+    hidden = [];
+    fullList?.remove();
+    fullList = null;
+  }
+
   function ensureToolbar(found) {
     if (toolbar?.isConnected) return;
     toolbar = ui.buildToolbar({
-      onManage: () =>
+      onManage: () => {
+        refreshRemote(); // im Hintergrund auffrischen, Dialog oeffnet sofort
         ui.openModal(
           {
             groups: state.groups,
             assign: state.assign,
-            projects: found.rows
-              .map((r) => ({ key: r.key, name: r.name, type: r.type }))
-              .sort((a, b) => a.name.localeCompare(b.name)),
+            projects: allProjects(lastFound),
+            remoteLoaded: remote.loaded,
+            remoteErrors: remote.errors,
           },
           persist
-        ),
+        );
+      },
       onCollapseAll: () => setAllCollapsed(true),
       onExpandAll: () => setAllCollapsed(false),
+      onToggleAllPages: () => setAllPages(!state.ui.allPages),
     });
     const anchor = dom.toolbarAnchor(found.container);
     anchor.parentElement?.insertBefore(toolbar, anchor);
@@ -133,6 +232,78 @@
   }
 
   function render(found) {
+    const useFull = !!state.ui.allPages && remote.loaded && remote.projects.length > 0;
+    if (!useFull && hidden.length) restoreNative();
+    if (useFull) renderFull(found);
+    else renderNative(found);
+
+    const known = allProjects(found);
+    ui.updateToolbar(toolbar, {
+      total: known.length,
+      grouped: known.filter((p) => state.assign[p.key]).length,
+      onPage: found.rows.length,
+      groups: state.groups.length,
+      allPages: useFull,
+      canAllPages: remote.loaded && remote.projects.length > 0,
+    });
+  }
+
+  /** Eigene, vollstaendige Liste ueber alle Seiten hinweg. */
+  function renderFull(found) {
+    const projects = allProjects(found);
+    const buckets = new Map(state.groups.map((g) => [g.id, []]));
+    buckets.set(UNGROUPED, []);
+    for (const project of projects) {
+      const gid = state.assign[project.key];
+      (buckets.get(gid) || buckets.get(UNGROUPED)).push(project);
+    }
+
+    const order = [...state.groups, { id: UNGROUPED, name: "Ohne Gruppe", color: "#9aa0a6" }];
+
+    pauseObserver(() => {
+      const list = document.createElement("div");
+      list.setAttribute("data-cfwg", "fulllist");
+      list.className = "cfwg-fulllist";
+
+      for (const group of order) {
+        const bucket = buckets.get(group.id) || [];
+        if (!bucket.length) continue;
+
+        const collapsed = !!state.ui.collapsed[group.id];
+        list.appendChild(
+          ui.buildHeader({
+            group,
+            count: bucket.length,
+            collapsed,
+            container: list,
+            onToggle: () => setCollapsed(group.id, !collapsed),
+          })
+        );
+        if (collapsed) continue;
+
+        for (const project of bucket) {
+          list.appendChild(
+            ui.buildProjectRow({
+              project,
+              accountId,
+              group: state.groups.find((g) => g.id === state.assign[project.key]),
+            })
+          );
+        }
+      }
+
+      const parent = found.container.parentElement;
+      if (parent) {
+        fullList?.remove();
+        hideNative(found.container);
+        parent.insertBefore(list, found.container.nextSibling);
+        fullList = list;
+      }
+      ensureToolbar(found);
+    });
+  }
+
+  function renderNative(found) {
     const { container, rows } = found;
 
     const buckets = new Map();
@@ -153,7 +324,9 @@
 
     for (const group of order) {
       const bucket = buckets.get(group.id) || [];
-      if (group.id === UNGROUPED && !bucket.length) continue;
+      // Leere Gruppen weglassen: seitenweise stuende sonst auf jeder Seite ein
+      // Header mit 0 Eintraegen, weil die Mitglieder auf einer anderen liegen.
+      if (!bucket.length) continue;
 
       const collapsed = !!state.ui.collapsed[group.id];
       const header = ui.buildHeader({
@@ -178,23 +351,22 @@
       if (sequence.length) applyOrder(container, sequence);
       headers = nextHeaders;
       ensureToolbar(found);
-      ui.updateToolbar(toolbar, {
-        total: rows.length,
-        grouped: rows.filter((r) => state.assign[r.key]).length,
-        groups: state.groups.length,
-      });
     });
   }
 
   // ------------------------------------------------------------------- Lauf
 
   function sync() {
+    mark("Page", dom.isListPage());
+    mark("Enabled", state.ui.enabled);
     if (!dom.isListPage() || !state.ui.enabled) {
       if (toolbar || headers.size) cleanup();
       return;
     }
     const found = dom.collectRows();
+    mark("Rows", found ? found.rows.length : 0);
     if (!found) return;
+    lastFound = found;
 
     accountId = found.accountId;
     const sig = signature(found);
@@ -205,6 +377,7 @@
       render(found);
     } catch (err) {
       console.warn("[cfwg] Rendern fehlgeschlagen:", err);
+      mark("Error", err && err.message ? err.message : err);
       lastSignature = "";
     }
   }
@@ -241,6 +414,7 @@
   }
 
   async function init() {
+    mark("Loaded", chrome.runtime?.getManifest?.()?.version || "dev");
     state = await Store.load(accountId).catch(() => state);
     Store.onChange(async () => {
       state = await Store.load(accountId).catch(() => state);
@@ -250,6 +424,7 @@
     watchNavigation();
     startObserver();
     schedule();
+    if (dom.isListPage()) refreshRemote();
   }
 
   init();

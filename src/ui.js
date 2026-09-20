@@ -36,6 +36,13 @@
       el("button", {
         class: "cfwg-btn",
         type: "button",
+        "data-cfwg-all": "1",
+        text: "Alle Seiten",
+        onclick: handlers.onToggleAllPages,
+      }),
+      el("button", {
+        class: "cfwg-btn",
+        type: "button",
         text: "Alle einklappen",
         onclick: handlers.onCollapseAll,
       }),
@@ -49,10 +56,24 @@
     return bar;
   }
 
-  function updateToolbar(bar, { grouped, total, groups }) {
+  function updateToolbar(bar, { grouped, total, groups, onPage, allPages, canAllPages }) {
     const stats = bar.querySelector("[data-cfwg-stats]");
     if (stats) {
-      stats.textContent = `${groups} Gruppen · ${grouped}/${total} zugeordnet`;
+      let text = `${groups} Gruppen · ${grouped}/${total} zugeordnet`;
+      if (allPages) text += " · alle Seiten";
+      else if (onPage != null && onPage < total) text += ` · ${onPage} auf dieser Seite`;
+      stats.textContent = text;
+    }
+
+    const toggle = bar.querySelector("[data-cfwg-all]");
+    if (toggle) {
+      toggle.textContent = allPages ? "Cloudflare-Liste" : "Alle Seiten";
+      toggle.title = allPages
+        ? "Zurück zur originalen, seitenweisen Liste"
+        : "Alle Projekte aus allen Listenseiten in einer Liste zeigen";
+      toggle.classList.toggle("cfwg-btn-on", !!allPages);
+      toggle.disabled = !canAllPages && !allPages;
+      toggle.style.opacity = toggle.disabled ? "0.5" : "";
     }
   }
 
@@ -91,6 +112,28 @@
       el("span", { class: "cfwg-count", text: String(count) })
     );
     host.appendChild(button);
+    return row;
+  }
+
+  // -------------------------------------------------- Zeile der eigenen Liste
+
+  function buildProjectRow({ project, accountId, group }) {
+    const href =
+      project.type === "pages"
+        ? `/${accountId}/pages/view/${project.name}`
+        : `/${accountId}/workers/services/view/${project.name}/production`;
+
+    const row = el("a", {
+      "data-cfwg": "row",
+      class: "cfwg-row",
+      href,
+      title: project.name,
+    });
+    row.append(
+      el("span", { class: "cfwg-type", text: project.type === "pages" ? "Pages" : "Worker" }),
+      el("span", { class: "cfwg-rowname", text: project.name }),
+      group ? dot(group.color) : el("span", { class: "cfwg-spacer" })
+    );
     return row;
   }
 
@@ -320,16 +363,42 @@
           box,
           el("span", { class: "cfwg-type", text: p.type === "pages" ? "Pages" : "Worker" }),
           el("span", { class: "cfwg-pname", text: p.name, title: p.name }),
+          p.onPage === false
+            ? el("span", {
+                class: "cfwg-offpage",
+                text: "andere Seite",
+                title: "Steht nicht auf der gerade angezeigten Listenseite",
+              })
+            : null,
           dot(g ? g.color : "transparent"),
           sel,
         ]);
       });
+
+      const offPage = state.projects.filter((x) => !x.onPage).length;
+      let note = null;
+      if (state.remoteErrors && state.remoteErrors.length) {
+        note = el("div", {
+          class: "cfwg-note cfwg-note-warn",
+          text:
+            "Gesamtliste nicht abrufbar – es werden nur die Projekte dieser " +
+            "Listenseite angezeigt. (" + state.remoteErrors.join(" | ") + ")",
+        });
+      } else if (!state.remoteLoaded) {
+        note = el("div", { class: "cfwg-note", text: "Gesamtliste wird geladen …" });
+      } else if (offPage) {
+        note = el("div", {
+          class: "cfwg-note",
+          text: `Enthält ${offPage} Projekte von anderen Listenseiten – zuordnen geht trotzdem.`,
+        });
+      }
 
       return el("section", { class: "cfwg-section" }, [
         el("div", { class: "cfwg-h3row" }, [
           el("h3", { class: "cfwg-h3", text: `Projekte (${state.projects.length})` }),
           search,
         ]),
+        note,
         el("div", { class: "cfwg-prow cfwg-thead" }, [
           allBox,
           el("span", { class: "cfwg-muted", text: "alle" }),
@@ -361,5 +430,5 @@
     modal.querySelector("input")?.focus();
   }
 
-  NS.ui = { buildToolbar, updateToolbar, buildHeader, openModal };
+  NS.ui = { buildToolbar, updateToolbar, buildHeader, buildProjectRow, openModal };
 })();
