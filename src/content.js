@@ -22,6 +22,7 @@
   let hidden = [];       // von uns ausgeblendete Original-Elemente
 
   const UNGROUPED = "__ungrouped__";
+  const startZeit = Date.now();
 
   /**
    * Content-Skripte laufen in einer isolierten Welt und sind aus der
@@ -429,6 +430,7 @@
 
     try {
       render(found);
+      mark("Rendered", Date.now() - startZeit + "ms");
     } catch (err) {
       console.warn("[cfwg] Rendern fehlgeschlagen:", err);
       mark("Error", err && err.message ? err.message : err);
@@ -467,6 +469,26 @@
     schedule();
   }
 
+  /**
+   * Der MutationObserver ist der Normalweg, aber er haengt daran, dass die
+   * Seite ueberhaupt noch Aenderungen meldet. Rendert das Dashboard die Liste
+   * fertig, bevor wir beobachten, kommt danach nichts mehr - und die Leiste
+   * bliebe aus. Deshalb in der Anfangsphase zusaetzlich aktiv nachsehen.
+   */
+  function startWatchdog() {
+    let versuche = 0;
+    const timer = setInterval(() => {
+      versuche++;
+      const fertig = toolbar?.isConnected;
+      if (fertig || versuche > 40) {
+        clearInterval(timer);
+        mark("Watchdog", fertig ? `ok nach ${versuche}` : "aufgegeben");
+        return;
+      }
+      if (dom.isListPage()) sync();
+    }, 500);
+  }
+
   async function init() {
     mark("Loaded", chrome.runtime?.getManifest?.()?.version || "dev");
     state = await Store.load(accountId).catch(() => state);
@@ -486,6 +508,7 @@
     }
 
     schedule();
+    startWatchdog();
     if (dom.isListPage()) refreshRemote();
   }
 

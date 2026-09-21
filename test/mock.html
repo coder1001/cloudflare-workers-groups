@@ -199,7 +199,12 @@
       }
     }
   };
-  window.__render(PROJECTS);
+  // ?late=N baut die Liste erst nach N ms auf - so verhaelt sich das echte
+  // Dashboard beim ersten Laden (React rendert nach dem document_idle der
+  // Content-Skripte). Ohne das testet man einen Fall, den es nie gibt.
+  const LATE = Number(PARAMS.get("late") || 0);
+  if (LATE > 0) setTimeout(() => window.__render(PROJECTS), LATE);
+  else window.__render(PROJECTS);
 
   if (PARAMS.get("open") === "dialog") {
     // Pollen statt feste Wartezeit: unter --virtual-time-budget laufen Timer
