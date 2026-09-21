@@ -58,6 +58,13 @@ for s in 48 128; do rsvg-convert -w $s -h $s icons/icon.svg -o icons/icon$s.png;
 
 Zwei Entscheidungen, die die Sache haltbar machen:
 
+- **Die Seitenleiste ist ausgeschlossen.** Sie fuehrt zuletzt besuchte
+  Projekte mit denselben Linkmustern und steht frueher im DOM als die
+  Projektliste - ohne Filter (`nav, aside, [role=navigation], header, footer`)
+  haengt die Erkennung dort fest. Zusaetzlich gewinnen Treffer innerhalb von
+  `<main>`, falls es welche gibt.
+- **Die Leiste haengt um, wenn der Container wechselt.** Zu pruefen, ob sie
+  noch im DOM steht, reicht nicht: sie muss an der *aktuellen* Liste sitzen.
 - **Erkennung ueber `href`, nicht ueber CSS-Klassen.** Die Klassennamen im
   Dashboard sind gehasht und aendern sich mit jedem Build; die Routen
   (`/workers/services/view/<name>`, `/pages/view/<name>`) sind stabil.

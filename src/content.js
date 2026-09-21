@@ -12,6 +12,7 @@
   let state = { groups: [], assign: {}, ui: { collapsed: {}, enabled: true } };
   let accountId = dom.accountId();
   let toolbar = null;
+  let toolbarAnker = null; // Element, vor dem die Leiste zuletzt sass
   let headers = new Map(); // groupId -> Element
   let observer = null;
   let pending = null;
@@ -168,6 +169,7 @@
       restoreNative();
     });
     toolbar = null;
+    toolbarAnker = null;
     headers = new Map();
     lastSignature = "";
   }
@@ -232,7 +234,19 @@
   }
 
   function ensureToolbar(found) {
-    if (toolbar?.isConnected) return;
+    const anker = dom.toolbarAnchor(found.container);
+
+    // Nicht nur "ist die Leiste noch im DOM", sondern "sitzt sie noch an der
+    // richtigen Liste". Beim Laden findet die Erkennung zuerst eine andere
+    // Liste; wechselt der Container spaeter, muss die Leiste mitkommen.
+    if (toolbar?.isConnected && toolbarAnker === anker) return;
+
+    if (toolbar?.isConnected) {
+      anker.parentElement?.insertBefore(toolbar, anker);
+      toolbarAnker = anker;
+      return;
+    }
+
     toolbar = ui.buildToolbar({
       onManage: () => {
         refreshRemote(); // im Hintergrund auffrischen, Dialog oeffnet sofort
@@ -250,8 +264,8 @@
       onCollapseAll: () => setAllCollapsed(true),
       onExpandAll: () => setAllCollapsed(false),
     });
-    const anchor = dom.toolbarAnchor(found.container);
-    anchor.parentElement?.insertBefore(toolbar, anchor);
+    anker.parentElement?.insertBefore(toolbar, anker);
+    toolbarAnker = anker;
   }
 
   // -------------------------------------------------------------- Sortierung

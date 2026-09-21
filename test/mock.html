@@ -8,6 +8,15 @@
   .wrap { max-width: 900px; }
 </style>
 
+<!-- Wie im echten Dashboard: die Seitenleiste fuehrt zuletzt besuchte
+     Projekte mit denselben Linkmustern und steht frueher im DOM. -->
+<aside id="seitenleiste" style="display:none;position:absolute;left:8px;top:8px;width:200px;font-size:12px;opacity:.5">
+  <nav>
+    <ul id="recents" style="list-style:none;padding:0;margin:0"></ul>
+  </nav>
+</aside>
+
+<main>
 <div class="wrap">
   <h1>Workers &amp; Pages</h1>
   <table>
@@ -23,6 +32,7 @@
     </div>
   </div>
 </div>
+</main>
 
 <script>
   // --- chrome.storage-Shim (In-Memory), damit die Content-Skripte laufen ---
@@ -202,6 +212,21 @@
   // ?late=N baut die Liste erst nach N ms auf - so verhaelt sich das echte
   // Dashboard beim ersten Laden (React rendert nach dem document_idle der
   // Content-Skripte). Ohne das testet man einen Fall, den es nie gibt.
+  // ?sidebar=1 fuellt die Seitenleiste sofort - die Liste kommt ggf. spaeter
+  if (PARAMS.get("sidebar")) {
+    const aside = document.getElementById("seitenleiste");
+    aside.style.display = "block";
+    const ul = document.getElementById("recents");
+    for (const [name, type] of PROJECTS.slice(0, 4)) {
+      const href = type === "pages"
+        ? `/${ACC}/pages/view/${name}`
+        : `/${ACC}/workers/services/view/${name}/production`;
+      const li = document.createElement("li");
+      li.innerHTML = `<a href="${href}">${name}</a>`;
+      ul.appendChild(li);
+    }
+  }
+
   const LATE = Number(PARAMS.get("late") || 0);
   if (LATE > 0) setTimeout(() => window.__render(PROJECTS), LATE);
   else window.__render(PROJECTS);

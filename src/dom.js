@@ -15,6 +15,11 @@
 
   const TABLEISH = new Set(["TABLE", "THEAD", "TBODY", "TFOOT", "TR"]);
 
+  // Die Seitenleiste des Dashboards fuehrt zuletzt besuchte Projekte auf -
+  // dieselben Linkmuster wie die Liste. Sie steht frueher im DOM als die
+  // Projektliste, weshalb die Erkennung sonst dort haengen bleibt.
+  const NAVIGATION = 'nav, aside, [role="navigation"], header, footer';
+
   function accountId() {
     const m = location.pathname.match(/^\/([0-9a-fA-F]{32})(\/|$)/);
     return m ? m[1].toLowerCase() : "default";
@@ -67,6 +72,7 @@
     const byKey = new Map();
     for (const a of root.querySelectorAll("a[href]")) {
       if (a.closest("[data-cfwg]")) continue; // eigene UI ignorieren
+      if (a.closest(NAVIGATION)) continue; // Seitenleiste ist nicht die Liste
       const p = parseProject(a);
       if (!p) continue;
       const key = `${p.type}/${p.name}`;
@@ -74,7 +80,14 @@
     }
     if (byKey.size < 2) return null;
 
-    const items = [...byKey.values()];
+    let items = [...byKey.values()];
+
+    // Gibt es Treffer im Hauptbereich, zaehlen nur die. Alles ausserhalb ist
+    // Beiwerk (Widgets, Empfehlungen) und nicht die Projektliste.
+    const imHauptbereich = items.filter((i) => i.a.closest("main"));
+    if (imHauptbereich.length) items = imHauptbereich;
+    if (items.length < 2) return null;
+
     const anchors = items.map((i) => i.a);
 
     // nach Container gruppieren, groesste Gruppe gewinnt (filtert Sidebar-Links raus)
