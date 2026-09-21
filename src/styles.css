@@ -254,21 +254,7 @@
   .cfwg-input option { background: #2a2b2f; color: #e9e9ea; }
 }
 
-/* Hinweise und Marker fuer Projekte jenseits der aktuellen Listenseite */
-
-.cfwg-note {
-  margin-bottom: 8px;
-  padding: 6px 8px;
-  border-radius: 6px;
-  background: rgba(128, 128, 128, 0.12);
-  font-size: 12px;
-  opacity: 0.85;
-}
-
-.cfwg-note-warn {
-  background: rgba(214, 69, 69, 0.14);
-  opacity: 1;
-}
+/* Marker fuer Projekte jenseits der aktuellen Listenseite */
 
 .cfwg-offpage {
   flex: 0 0 auto;
@@ -313,11 +299,6 @@
   text-overflow: ellipsis;
 }
 
-.cfwg-btn-on {
-  border-color: #f6821f;
-  background: rgba(246, 130, 31, 0.16);
-  font-weight: 600;
-}
 
 
 /* ---------------------------------------------- Zuordnen-Dialog (Neufassung)

@@ -109,9 +109,7 @@
    * auseinander - genau so entstand kurz vor Ladeende ein "fertig"-Text.
    */
   function toolbarState(found) {
-    const wantFull = !!state.ui.allPages;
     const canFull = remote.projects.length > 0;
-    const warten = wantFull && !canFull && !remote.loaded;
     const known = allProjects(found);
 
     return {
@@ -119,11 +117,10 @@
       grouped: known.filter((p) => state.assign[p.key]).length,
       onPage: found.rows.length,
       groups: state.groups.length,
-      allPages: wantFull && canFull,
-      canAllPages: canFull,
+      vollstaendig: canFull,
       progress: remote.progress,
       fromCache: remote.fromCache,
-      warten,
+      warten: !canFull && !remote.loaded,
     };
   }
 
@@ -143,7 +140,6 @@
       collapsed: state.ui.collapsed,
       rows: found.rows.map((r) => [r.key, state.assign[r.key] || ""]),
       remote: remote.projects.length,
-      allPages: !!state.ui.allPages,
       loaded: remote.loaded,
     });
   }
@@ -189,14 +185,6 @@
   async function setCollapsed(groupId, collapsed) {
     state.ui = { ...state.ui, collapsed: { ...state.ui.collapsed, [groupId]: collapsed } };
     await Store.saveUi(state.ui).catch(() => {});
-    lastSignature = "";
-    schedule();
-  }
-
-  async function setAllPages(on) {
-    state.ui = { ...state.ui, allPages: !!on };
-    await Store.saveUi(state.ui).catch(() => {});
-    if (!on) restoreNative();
     lastSignature = "";
     schedule();
   }
@@ -260,7 +248,6 @@
       },
       onCollapseAll: () => setAllCollapsed(true),
       onExpandAll: () => setAllCollapsed(false),
-      onToggleAllPages: () => setAllPages(!state.ui.allPages),
     });
     const anchor = dom.toolbarAnchor(found.container);
     anchor.parentElement?.insertBefore(toolbar, anchor);
@@ -285,20 +272,21 @@
   }
 
   function render(found) {
-    const wantFull = !!state.ui.allPages;
+    // Die vollstaendige Liste ist der Normalfall. Wer Cloudflares eigene
+    // Ansicht will, schaltet die Erweiterung im Popup ab - dafuer braucht es
+    // keinen zweiten Schalter in der Leiste.
     const canFull = remote.projects.length > 0;
 
     // Solange die Gesamtliste fehlt, waere jede Gruppierung irrefuehrend: sie
     // zeigte nur die Eintraege dieser einen Listenseite und spraenge gleich
     // wieder um. Also Cloudflares Liste unangetastet stehen lassen und warten.
-    const warten = wantFull && !canFull && !remote.loaded;
+    const warten = !canFull && !remote.loaded;
 
-    const useFull = wantFull && canFull;
-    if (!useFull && hidden.length) restoreNative();
+    if (!canFull && hidden.length) restoreNative();
 
     if (warten) renderWaiting(found);
-    else if (useFull) renderFull(found);
-    else renderNative(found);
+    else if (canFull) renderFull(found);
+    else renderNative(found); // Rueckfall, wenn die Gesamtliste nicht kommt
 
     ui.updateToolbar(toolbar, toolbarState(found));
   }

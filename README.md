@@ -22,11 +22,15 @@ Ueber der Liste erscheint eine Leiste:
   oder auf *Ohne Gruppe* – praktisch, um die noch offenen abzuarbeiten.
   Alles wird sofort gespeichert.
 - **Alle ein-/ausklappen** – Gruppen zusammenfalten; der Zustand haelt.
-- **Alle Seiten / Cloudflare-Liste** – schaltet zwischen der originalen,
-  seitenweisen Liste und einer eigenen, vollstaendigen Liste ueber alle
-  Listenseiten hinweg um. Im eigenen Modus werden Cloudflares Liste und ihre
-  Pagination ausgeblendet (per `display:none`, nicht entfernt – zurueckschalten
-  stellt den Originalzustand exakt wieder her).
+Die Erweiterung zeigt immer **eine** Liste ueber alle Listenseiten hinweg und
+blendet dafuer Cloudflares Liste samt Pagination aus (per `display:none`, nicht
+entfernt). Es gibt bewusst keinen Umschalter zurueck zur Originalansicht: wer
+die will, schaltet die Erweiterung im Popup ab – zwei Wege zum selben Ziel sind
+einer zu viel.
+
+Nur wenn die Gesamtliste nicht abrufbar ist, faellt die Anzeige auf die
+seitenweise Gruppierung innerhalb von Cloudflares eigener Liste zurueck; die
+Leiste weist dann auf "nur diese Listenseite" hin.
 
 Nicht zugeordnete Projekte sammeln sich sichtbar unter **Ohne Gruppe**. Neue
 Projekte landen automatisch dort, gehen also nicht unter.

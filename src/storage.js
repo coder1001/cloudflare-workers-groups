@@ -63,9 +63,6 @@
           ...ui,
           collapsed: ui.collapsed || {},
           enabled: ui.enabled !== false,
-          // Standard an: die seitenweise Ansicht zeigt eine Gruppe auf jeder
-          // Seite erneut und dort ggf. leer – das verwirrt mehr als es nutzt.
-          allPages: ui.allPages !== false,
         },
       };
     },

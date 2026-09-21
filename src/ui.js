@@ -39,13 +39,6 @@
       el("button", {
         class: "cfwg-btn",
         type: "button",
-        "data-cfwg-all": "1",
-        text: "Alle Seiten",
-        onclick: handlers.onToggleAllPages,
-      }),
-      el("button", {
-        class: "cfwg-btn",
-        type: "button",
         text: "Alle einklappen",
         onclick: handlers.onCollapseAll,
       }),
@@ -61,7 +54,7 @@
 
   function updateToolbar(
     bar,
-    { grouped, total, groups, onPage, allPages, canAllPages, progress, fromCache, warten }
+    { grouped, total, groups, onPage, vollstaendig, progress, fromCache, warten }
   ) {
     const stats = bar.querySelector("[data-cfwg-stats]");
     if (stats) {
@@ -74,8 +67,8 @@
             : "Projekte werden geladen …";
       } else {
         text = `${groups} Gruppen · ${grouped}/${total} zugeordnet`;
-        if (allPages) text += " · alle Seiten";
-        else if (onPage != null && onPage < total) text += ` · ${onPage} auf dieser Seite`;
+        // Nur erwaehnen, wenn etwas fehlt - der Normalfall braucht keinen Hinweis
+        if (!vollstaendig) text += ` · nur diese Listenseite (${onPage})`;
         if (fromCache) text += " · aktualisiere …";
       }
       stats.textContent = text;
@@ -95,16 +88,6 @@
       }
     }
 
-    const toggle = bar.querySelector("[data-cfwg-all]");
-    if (toggle) {
-      toggle.textContent = allPages ? "Cloudflare-Liste" : "Alle Seiten";
-      toggle.title = allPages
-        ? "Zurück zur originalen, seitenweisen Liste"
-        : "Alle Projekte aus allen Listenseiten in einer Liste zeigen";
-      toggle.classList.toggle("cfwg-btn-on", !!allPages);
-      toggle.disabled = !canAllPages && !allPages;
-      toggle.style.opacity = toggle.disabled ? "0.5" : "";
-    }
   }
 
   // --------------------------------------------------------- Gruppen-Header
