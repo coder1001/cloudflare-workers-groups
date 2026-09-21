@@ -15,9 +15,12 @@ nicht veraendert und es wird kein API-Token gebraucht.
 
 Ueber der Liste erscheint eine Leiste:
 
-- **Zuordnen …** – Gruppen anlegen/umbenennen/sortieren/loeschen und Projekte
-  zuweisen. Entweder einzeln per Dropdown oder mehrere per Checkbox +
-  *Auswahl zuweisen*. Alles wird sofort gespeichert.
+- **Zuordnen …** – Dialog mit zwei Reitern: *Projekte* (suchen, filtern,
+  zuweisen) und *Gruppen* (anlegen, umbenennen, sortieren, loeschen).
+  Zuweisen einzeln per Dropdown oder mehrere per Checkbox; die Sammelleiste
+  erscheint, sobald etwas ausgewaehlt ist. Die Chips filtern auf eine Gruppe
+  oder auf *Ohne Gruppe* – praktisch, um die noch offenen abzuarbeiten.
+  Alles wird sofort gespeichert.
 - **Alle ein-/ausklappen** – Gruppen zusammenfalten; der Zustand haelt.
 - **Alle Seiten / Cloudflare-Liste** – schaltet zwischen der originalen,
   seitenweisen Liste und einer eigenen, vollstaendigen Liste ueber alle
@@ -82,6 +85,28 @@ Zwei Eigenheiten, die die Implementierung beachtet:
 
 Schlaegt alles fehl, faellt die Extension still auf `/workers/scripts` +
 `/pages/projects` und zur Not auf das DOM der aktuellen Seite zurueck.
+
+## Dialog-Layout
+
+Der Dialog hat **genau einen Scroll-Bereich** (den Listenkoerper). Kopf,
+Reiter, Suche, Filter-Chips und Sammelleiste stehen fix darueber, die
+Fusszeile fix darunter.
+
+Das ist bewusst so: zwei uebereinander gestapelte Scroll-Listen lesen sich wie
+abgeschnittener Inhalt, und man sucht dann Eintraege, die gar nicht verdeckt
+sind. Dazu zwei Details, die dem Eindruck weiter entgegenwirken:
+
+- Der Listenkopf haftet buendig an der Oberkante (`padding-top: 0` am
+  Scroll-Container) – ein Innenabstand dort liesse Inhalt sichtbar dahinter
+  vorbeiscrollen.
+- Eine weiche Kante am oberen und unteren Rand erscheint nur dann, wenn
+  tatsaechlich noch Inhalt folgt (CSS-Verlaeufe mit
+  `background-attachment: local`).
+
+Beim Zuweisen ohne aktiven Filter wird die Liste **nicht** neu gezeichnet,
+damit unter dem Cursor nichts wegspringt; nur Farbpunkt und Chip-Zahlen ziehen
+nach. Mit aktivem Filter wird neu gezeichnet, weil die Zeile dann erwartbar
+herausfaellt – die Scrollposition bleibt erhalten.
 
 ## Datenformat
 
