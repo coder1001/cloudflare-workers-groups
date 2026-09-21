@@ -95,11 +95,6 @@
       }
     }
 
-    for (const b of bar.querySelectorAll(".cfwg-btn")) {
-      b.disabled = !!warten;
-      b.style.opacity = warten ? "0.5" : "";
-    }
-
     const toggle = bar.querySelector("[data-cfwg-all]");
     if (toggle) {
       toggle.textContent = allPages ? "Cloudflare-Liste" : "Alle Seiten";

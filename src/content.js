@@ -69,13 +69,23 @@
     return [...byKey.values()].sort((a, b) => a.name.localeCompare(b.name));
   }
 
+  let remoteLoading = false;
+
   async function refreshRemote() {
-    if (!NS.api) return;
+    if (!NS.api || remoteLoading) return;
+    remoteLoading = true;
     try {
-      const res = await NS.api.fetchAllProjects(accountId, (p) => {
-        remote.progress = p;
-        updateToolbarOnly();
-      });
+      // Zeitlimit, damit die Ansicht bei einer haengenden Antwort nicht
+      // dauerhaft im Wartezustand festsitzt
+      const res = await Promise.race([
+        NS.api.fetchAllProjects(accountId, (p) => {
+          remote.progress = p;
+          updateToolbarOnly();
+        }),
+        new Promise((_, ab) =>
+          setTimeout(() => ab(new Error("Zeitueberschreitung")), 20000)
+        ),
+      ]);
       remote = { ...res, loaded: true, fromCache: false, progress: null };
       mark("Remote", res.projects.length);
       mark("Source", res.source || "?");
@@ -86,6 +96,8 @@
       remote.progress = null;
       remote.errors = [err?.message || String(err)];
       mark("RemoteError", err?.message || err);
+    } finally {
+      remoteLoading = false;
     }
     lastSignature = "";
     schedule();
@@ -419,6 +431,8 @@
     mark("Rows", found ? found.rows.length : 0);
     if (!found) return;
     lastFound = found;
+
+    if (!remote.loaded && !remoteLoading) refreshRemote();
 
     accountId = found.accountId;
     const sig = signature(found);

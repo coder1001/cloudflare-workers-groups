@@ -106,6 +106,11 @@ Dazu zwei Dinge, die das Warten verkuerzen bzw. erklaeren:
 Der Balken sitzt absolut an der Oberkante der Leiste, damit deren Hoehe beim
 Erscheinen nicht springt.
 
+Der Abruf wird aus `sync()` angestossen, nicht nur beim Start: im Dashboard
+landet man meist per Klick in der Seitenleiste auf der Liste, nicht per
+Direktaufruf. Eine Sperre verhindert Mehrfachabfragen, ein Zeitlimit von 20
+Sekunden beendet den Wartezustand auch dann, wenn die Antwort ausbleibt.
+
 ## Dialog-Layout
 
 Der Dialog hat **genau einen Scroll-Bereich** (den Listenkoerper). Kopf,
