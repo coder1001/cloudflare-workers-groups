@@ -57,12 +57,44 @@
   };
 
   const ACC = location.pathname.split("/")[1];
-  const PROJECTS = [
-    ["shop-a-api", "worker"], ["shop-a-web", "pages"],
-    ["shop-b-api", "worker"], ["shop-b-web", "pages"],
-    ["monitoring", "worker"], ["cron-runner", "worker"],
-    ["docs-site", "pages"], ["image-resizer", "worker"],
-  ];
+  const PARAMS = new URLSearchParams(location.search);
+
+  // ?demo=1 setzt einen vorzeigbaren Zustand fuer Screenshots – bewusst mit
+  // erfundenen Projektnamen, damit nichts Echtes im Store landet.
+  if (PARAMS.get("demo")) {
+    const demo = {
+      groups: [
+        { id: "g1", name: "Kundenprojekte", color: "#f6821f" },
+        { id: "g2", name: "Interne Tools", color: "#0051c3" },
+        { id: "g3", name: "Spielwiese", color: "#00a86b" },
+      ],
+      ui: { collapsed: { g3: true }, enabled: true, allPages: true },
+    };
+    demo["assign:" + ACC] = {
+      "worker/shop-api": "g1", "pages/shop-web": "g1", "worker/checkout-hook": "g1",
+      "worker/monitoring": "g2", "worker/cron-runner": "g2", "pages/docs-site": "g2",
+      "worker/image-resizer": "g3", "worker/sandbox-test": "g3",
+    };
+    localStorage.setItem("__mem", JSON.stringify(demo));
+    // mem wurde oben schon gelesen – sonst greift der Demo-Zustand erst beim
+    // naechsten Laden, und der Screenshot zeigt eine leere Gruppierung.
+    Object.assign(mem, demo);
+
+    document.querySelector(".wrap").style.maxWidth = "1180px";
+  }
+  const PROJECTS = PARAMS.get("demo")
+    ? [
+        ["shop-api", "worker"], ["shop-web", "pages"],
+        ["checkout-hook", "worker"], ["monitoring", "worker"],
+        ["cron-runner", "worker"], ["docs-site", "pages"],
+        ["image-resizer", "worker"], ["sandbox-test", "worker"],
+      ]
+    : [
+        ["shop-a-api", "worker"], ["shop-a-web", "pages"],
+        ["shop-b-api", "worker"], ["shop-b-web", "pages"],
+        ["monitoring", "worker"], ["cron-runner", "worker"],
+        ["docs-site", "pages"], ["image-resizer", "worker"],
+      ];
 
   // ?layout=div rendert dieselbe Liste als Flex-Container statt als Tabelle
   const LAYOUT = new URLSearchParams(location.search).get("layout") || "table";
@@ -117,6 +149,18 @@
     }
   };
   window.__render(PROJECTS);
+
+  if (PARAMS.get("open") === "dialog") {
+    // Pollen statt feste Wartezeit: unter --virtual-time-budget laufen Timer
+    // im Zeitraffer, eine starre Verzoegerung trifft den Moment nicht.
+    const tick = setInterval(() => {
+      const btn = document.querySelector(".cfwg-toolbar .cfwg-btn-primary");
+      if (btn) {
+        clearInterval(tick);
+        btn.click();
+      }
+    }, 100);
+  }
 
   // Test-Hook: Reihenfolge inkl. Gruppen-Header auslesen
   window.__order = () =>

@@ -17,6 +17,14 @@ WORKERS = [f"worker-{i:02d}" for i in range(1, 24)] + [
     "shop-a-api", "shop-b-api", "monitoring", "cron-runner", "image-resizer",
 ]
 PAGES = ["shop-a-web", "shop-b-web", "docs-site", "marketing-lp"]
+
+# Namen fuer den Demo-/Screenshot-Modus (?demo=1): frei erfunden
+DEMO_WORKERS = [
+    "shop-api", "checkout-hook", "monitoring", "cron-runner", "image-resizer",
+    "sandbox-test", "pdf-render", "webhook-relay", "auth-proxy", "newsletter-send",
+    "feed-import", "log-shipper",
+]
+DEMO_PAGES = ["shop-web", "docs-site", "landing-2026", "status-page"]
 PAGE_SIZE = 10  # Standard, wird von per_page ueberschrieben
 
 
@@ -73,8 +81,10 @@ class H(http.server.SimpleHTTPRequestHandler):
             )
 
         if parsed.path.endswith("/workers-and-pages/overview"):
-            combined = [{"name": n, "type": "script"} for n in WORKERS] + [
-                {"name": n, "type": "pages"} for n in PAGES
+            demo = "demo" in (self.headers.get("Referer") or "")
+            workers, pages = (DEMO_WORKERS, DEMO_PAGES) if demo else (WORKERS, PAGES)
+            combined = [{"name": n, "type": "script"} for n in workers] + [
+                {"name": n, "type": "pages"} for n in pages
             ]
             chunk, info = paginate(combined, page, per_page)
             return self.send_json(

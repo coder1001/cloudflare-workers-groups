@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Cloudflare Workers Groups",
+  "name": "Projektgruppen für Cloudflare",
   "version": "1.0.0",
-  "description": "Gruppiert die Projekte in der Cloudflare-Liste \"Workers & Pages\" – rein lokal, ohne API-Token.",
+  "description": "Gruppiert deine Projekte unter \"Workers & Pages\" im Cloudflare-Dashboard – über alle Listenseiten hinweg. Lokal, ohne API-Token. Inoffiziell.",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -10,8 +10,7 @@
     "128": "icons/icon128.png"
   },
   "permissions": [
-    "storage",
-    "activeTab"
+    "storage"
   ],
   "content_scripts": [
     {
@@ -33,7 +32,7 @@
   ],
   "action": {
     "default_popup": "popup/popup.html",
-    "default_title": "Cloudflare Workers Groups",
+    "default_title": "Projektgruppen für Cloudflare",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",

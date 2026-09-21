@@ -6,11 +6,6 @@
     setTimeout(() => ($("status").textContent = ""), 3000);
   };
 
-  async function reloadActiveTab() {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab?.id) chrome.tabs.reload(tab.id);
-  }
-
   chrome.storage.sync.get("ui", ({ ui }) => {
     $("enabled").checked = (ui || {}).enabled !== false;
   });
@@ -18,8 +13,9 @@
   $("enabled").addEventListener("change", async () => {
     const { ui } = await chrome.storage.sync.get("ui");
     await Store.saveUi({ ...(ui || { collapsed: {} }), enabled: $("enabled").checked });
-    // Ausschalten stellt die Original-Reihenfolge nicht wieder her – dafuer neu laden
-    reloadActiveTab();
+    // Kein Tab-Reload noetig: das Content-Skript hoert auf Storage-Aenderungen
+    // und stellt beim Abschalten die Originalliste selbst wieder her.
+    status($("enabled").checked ? "Eingeschaltet." : "Ausgeschaltet.");
   });
 
   $("export").addEventListener("click", async () => {
@@ -43,7 +39,6 @@
       if (!data || typeof data !== "object") throw new Error("Kein Objekt");
       await Store.importAll(data);
       status("Importiert.");
-      reloadActiveTab();
     } catch (err) {
       status("Import fehlgeschlagen: " + err.message);
     }
@@ -52,9 +47,6 @@
 
   $("reset").addEventListener("click", () => {
     if (!confirm("Alle Gruppen und Zuordnungen loeschen?")) return;
-    chrome.storage.sync.clear(() => {
-      status("Zurueckgesetzt.");
-      reloadActiveTab();
-    });
+    chrome.storage.sync.clear(() => status("Zurueckgesetzt."));
   });
 })();
