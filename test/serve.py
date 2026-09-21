@@ -9,7 +9,7 @@ Die API antwortet absichtlich unbequem: /workers/services gibt 404 (damit der
 Fallback auf /workers/scripts geprueft wird) und liefert 10 Eintraege pro
 Seite, egal was per_page sagt.
 """
-import http.server, json, os, sys, urllib.parse
+import http.server, json, os, sys, time, urllib.parse
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -62,6 +62,12 @@ class H(http.server.SimpleHTTPRequestHandler):
         page = int(qs.get("page", ["1"])[0])
         per_page = int(qs.get("per_page", ["10"])[0])
 
+        # Cookies statt Referer: Chrome kuerzt den Referer je nach Policy um
+        # den Query-String, Cookies kommen bei same-origin zuverlaessig mit.
+        cookies = self.headers.get("Cookie") or ""
+        if "cfwg_slow=1" in cookies:
+            time.sleep(1.2)
+
         if per_page > self.MAX_PER_PAGE:
             return self.send_json(
                 {"success": False,
@@ -81,7 +87,7 @@ class H(http.server.SimpleHTTPRequestHandler):
             )
 
         if parsed.path.endswith("/workers-and-pages/overview"):
-            demo = "demo" in (self.headers.get("Referer") or "")
+            demo = "cfwg_demo=1" in cookies
             workers, pages = (DEMO_WORKERS, DEMO_PAGES) if demo else (WORKERS, PAGES)
             combined = [{"name": n, "type": "script"} for n in workers] + [
                 {"name": n, "type": "pages"} for n in pages

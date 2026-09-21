@@ -24,6 +24,9 @@
   function buildToolbar(handlers) {
     const bar = el("div", { "data-cfwg": "toolbar", class: "cfwg-toolbar" });
     bar.append(
+      el("div", { "data-cfwg-progress": "1", class: "cfwg-progress" }, [
+        el("div", { class: "cfwg-progress-fill" }),
+      ]),
       el("span", { class: "cfwg-brand", text: "Gruppen" }),
       el("span", { "data-cfwg-stats": "1", class: "cfwg-stats" }),
       el("span", { class: "cfwg-spacer" }),
@@ -56,13 +59,45 @@
     return bar;
   }
 
-  function updateToolbar(bar, { grouped, total, groups, onPage, allPages, canAllPages }) {
+  function updateToolbar(
+    bar,
+    { grouped, total, groups, onPage, allPages, canAllPages, progress, fromCache, warten }
+  ) {
     const stats = bar.querySelector("[data-cfwg-stats]");
     if (stats) {
-      let text = `${groups} Gruppen · ${grouped}/${total} zugeordnet`;
-      if (allPages) text += " · alle Seiten";
-      else if (onPage != null && onPage < total) text += ` · ${onPage} auf dieser Seite`;
+      let text;
+      if (warten) {
+        // Seitenzahl nur nennen, wenn es wirklich mehrere sind
+        text =
+          progress?.total > 1
+            ? `Projekte werden geladen … Seite ${progress.page} von ${progress.total}`
+            : "Projekte werden geladen …";
+      } else {
+        text = `${groups} Gruppen · ${grouped}/${total} zugeordnet`;
+        if (allPages) text += " · alle Seiten";
+        else if (onPage != null && onPage < total) text += ` · ${onPage} auf dieser Seite`;
+        if (fromCache) text += " · aktualisiere …";
+      }
       stats.textContent = text;
+    }
+
+    // Balken: bekannt gewordene Seitenzahl als Anteil, sonst unbestimmt
+    const prog = bar.querySelector("[data-cfwg-progress]");
+    if (prog) {
+      const laeuft = !!progress || warten || fromCache;
+      prog.classList.toggle("cfwg-progress-on", laeuft);
+      prog.classList.toggle("cfwg-progress-unbestimmt", laeuft && !progress?.total);
+      const fill = prog.querySelector(".cfwg-progress-fill");
+      if (fill) {
+        fill.style.width = progress?.total
+          ? Math.round((progress.page / progress.total) * 100) + "%"
+          : "";
+      }
+    }
+
+    for (const b of bar.querySelectorAll(".cfwg-btn")) {
+      b.disabled = !!warten;
+      b.style.opacity = warten ? "0.5" : "";
     }
 
     const toggle = bar.querySelector("[data-cfwg-all]");

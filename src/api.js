@@ -68,7 +68,7 @@
   }
 
   /** Blaettert einen Endpunkt mit gegebener Seitengroesse komplett durch. */
-  async function drain(build, accountId, classify, perPage) {
+  async function drain(build, accountId, classify, perPage, onProgress) {
     const items = [];
     for (let page = 1; page <= MAX_PAGES; page++) {
       const body = await getJson(build(accountId, page, perPage));
@@ -82,17 +82,18 @@
       }
 
       const total = Number(body?.result_info?.total_pages) || null;
+      onProgress?.({ page, total, geladen: items.length });
       if (total ? page >= total : result.length < perPage) break;
     }
     return items;
   }
 
-  async function tryAll(builders, accountId, classify) {
+  async function tryAll(builders, accountId, classify, onProgress) {
     let lastError = null;
     for (const build of builders) {
       for (const perPage of PER_PAGE_LADDER) {
         try {
-          const items = await drain(build, accountId, classify, perPage);
+          const items = await drain(build, accountId, classify, perPage, onProgress);
           if (items.length) {
             return { items, endpoint: build(accountId, 1, perPage), perPage };
           }
@@ -107,9 +108,9 @@
     return { items: [], error: lastError?.message || "keine Liste erhalten" };
   }
 
-  async function fetchAllProjects(accountId) {
+  async function fetchAllProjects(accountId, onProgress) {
     // 1. Wahl: der kombinierte Endpunkt des Dashboards
-    const overview = await tryAll([OVERVIEW], accountId, kindOf);
+    const overview = await tryAll([OVERVIEW], accountId, kindOf, onProgress);
     if (overview.items.length) {
       return {
         projects: dedupe(overview.items),
@@ -121,8 +122,8 @@
 
     // Fallback: getrennte Listen
     const [workers, pages] = await Promise.all([
-      tryAll(WORKERS, accountId, () => "worker"),
-      tryAll(PAGES, accountId, () => "pages"),
+      tryAll(WORKERS, accountId, () => "worker", onProgress),
+      tryAll(PAGES, accountId, () => "pages", onProgress),
     ]);
 
     return {

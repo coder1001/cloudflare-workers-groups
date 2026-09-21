@@ -86,6 +86,26 @@ Zwei Eigenheiten, die die Implementierung beachtet:
 Schlaegt alles fehl, faellt die Extension still auf `/workers/scripts` +
 `/pages/projects` und zur Not auf das DOM der aktuellen Seite zurueck.
 
+## Ladeverhalten
+
+Beim Seitenaufruf steht im DOM nur die sichtbare Listenseite; die Gesamtliste
+kommt erst per API. In dieser Luecke wird bewusst **nicht** gruppiert:
+Cloudflares Liste bleibt unangetastet stehen, bis die vollstaendige Liste da
+ist. Wuerde man schon die zehn Eintraege der ersten Seite gruppieren, zeigte
+man eine irrefuehrende Ansicht, die gleich darauf umspringt.
+
+Dazu zwei Dinge, die das Warten verkuerzen bzw. erklaeren:
+
+- **Cache.** Die Projektliste liegt pro Account in `chrome.storage.local`.
+  Beim naechsten Besuch steht die Ansicht sofort (gemessen: 0,2 s statt 5 s),
+  der API-Abgleich laeuft daneben und die Leiste zeigt „aktualisiere …".
+- **Fortschritt.** Nach der ersten Antwort ist `total_pages` bekannt, die
+  Leiste zeigt also „Seite 2 von 4" statt eines endlosen Spinners. Vorher und
+  bei nur einer Seite laeuft ein unbestimmtes Segment.
+
+Der Balken sitzt absolut an der Oberkante der Leiste, damit deren Hoehe beim
+Erscheinen nicht springt.
+
 ## Dialog-Layout
 
 Der Dialog hat **genau einen Scroll-Bereich** (den Listenkoerper). Kopf,

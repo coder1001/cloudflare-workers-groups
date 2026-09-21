@@ -52,12 +52,63 @@
         },
         clear(cb) { for (const k of Object.keys(mem)) delete mem[k]; persist(); cb && cb(); },
       },
+      // storage.local fuer den Projektcache – eigener Speicher, wie im Original
+      local: {
+        get(keys, cb) {
+          const loc = JSON.parse(localStorage.getItem("__local") || "{}");
+          let out = {};
+          if (keys === null) out = { ...loc };
+          else for (const k of [].concat(keys)) if (k in loc) out[k] = loc[k];
+          cb(out);
+        },
+        set(obj, cb) {
+          const loc = JSON.parse(localStorage.getItem("__local") || "{}");
+          Object.assign(loc, obj);
+          localStorage.setItem("__local", JSON.stringify(loc));
+          cb && cb();
+        },
+        clear(cb) { localStorage.removeItem("__local"); cb && cb(); },
+      },
       onChanged: { addListener: (l) => listeners.push(l) },
     },
   };
 
   const ACC = location.pathname.split("/")[1];
   const PARAMS = new URLSearchParams(location.search);
+
+  // Schalter als Cookie weiterreichen, damit der Server sie bei den
+  // API-Aufrufen der Erweiterung sieht
+  document.cookie = "cfwg_demo=" + (PARAMS.get("demo") ? "1" : "0") + ";path=/";
+  document.cookie = "cfwg_slow=" + (PARAMS.get("slow") ? "1" : "0") + ";path=/";
+
+  // ?trace=1 schreibt den Ansichtszustand ab dem ersten Moment mit - sonst ist
+  // die Ladephase vorbei, bevor man von aussen hineinschauen kann.
+  if (PARAMS.get("trace")) {
+    const start = Date.now();
+    window.__trace = [];
+    const merke = () => {
+      const bar = document.querySelector('[data-cfwg="toolbar"]');
+      const prog = document.querySelector("[data-cfwg-progress]");
+      const liste = document.getElementById("list-cards");
+      const zeile = {
+        t: Date.now() - start,
+        leiste: bar ? bar.querySelector(".cfwg-stats")?.textContent : null,
+        balken: !prog || !prog.classList.contains("cfwg-progress-on")
+          ? "aus"
+          : prog.classList.contains("cfwg-progress-unbestimmt")
+          ? "unbestimmt"
+          : prog.querySelector(".cfwg-progress-fill").style.width,
+        eigeneListe: !!document.querySelector('[data-cfwg="fulllist"]'),
+        header: document.querySelectorAll('[data-cfwg="header"]').length,
+        originalSichtbar: liste ? getComputedStyle(liste).display !== "none" : null,
+      };
+      const letzte = window.__trace[window.__trace.length - 1];
+      const ohneZeit = (x) => JSON.stringify({ ...x, t: 0 });
+      if (!letzte || ohneZeit(letzte) !== ohneZeit(zeile)) window.__trace.push(zeile);
+    };
+    setInterval(merke, 100);
+    merke();
+  }
 
   // ?demo=1 setzt einen vorzeigbaren Zustand fuer Screenshots – bewusst mit
   // erfundenen Projektnamen, damit nichts Echtes im Store landet.

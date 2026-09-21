@@ -447,3 +447,41 @@
   border-radius: 6px;
 }
 .cfwg-header-collapsed .cfwg-header-name { opacity: 0.8; }
+
+/* Ladefortschritt in der Leiste: schmaler Balken an der Oberkante, damit die
+   Leiste beim Erscheinen nicht die Hoehe aendert und die Seite springt. */
+
+.cfwg-toolbar { position: relative; overflow: hidden; }
+
+.cfwg-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.cfwg-progress-on { opacity: 1; }
+
+.cfwg-progress-fill {
+  height: 100%;
+  width: 0;
+  background: #f6821f;
+  transition: width 0.25s ease;
+}
+
+/* Ohne bekannte Seitenzahl: wanderndes Segment statt falscher Prozentangabe */
+.cfwg-progress-unbestimmt .cfwg-progress-fill {
+  width: 35% !important;
+  animation: cfwg-wandern 1.1s ease-in-out infinite;
+}
+
+@keyframes cfwg-wandern {
+  0%   { margin-left: -35%; }
+  100% { margin-left: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cfwg-progress-unbestimmt .cfwg-progress-fill { animation: none; width: 100% !important; opacity: 0.5; }
+}

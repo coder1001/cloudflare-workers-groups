@@ -17,7 +17,7 @@
   let pending = null;
   let lastSignature = "";
   let lastFound = null;
-  let remote = { projects: [], errors: [], loaded: false };
+  let remote = { projects: [], errors: [], loaded: false, fromCache: false, progress: null };
   let fullList = null;   // eigener Container, wenn "Alle Seiten" aktiv ist
   let hidden = [];       // von uns ausgeblendete Original-Elemente
 
@@ -72,16 +72,56 @@
   async function refreshRemote() {
     if (!NS.api) return;
     try {
-      const res = await NS.api.fetchAllProjects(accountId);
-      remote = { ...res, loaded: true };
+      const res = await NS.api.fetchAllProjects(accountId, (p) => {
+        remote.progress = p;
+        updateToolbarOnly();
+      });
+      remote = { ...res, loaded: true, fromCache: false, progress: null };
       mark("Remote", res.projects.length);
       mark("Source", res.source || "?");
       if (res.errors.length) mark("RemoteError", res.errors.join(" | "));
+      if (res.projects.length) Store.saveCache(accountId, res.projects).catch(() => {});
     } catch (err) {
+      remote.loaded = true; // sonst wartet die Ansicht ewig
+      remote.progress = null;
+      remote.errors = [err?.message || String(err)];
       mark("RemoteError", err?.message || err);
     }
     lastSignature = "";
     schedule();
+  }
+
+  /**
+   * Der Leistenzustand wird an zwei Stellen gebraucht (beim Rendern und
+   * waehrend des Ladens). Nur eine Berechnung, sonst driften die beiden
+   * auseinander - genau so entstand kurz vor Ladeende ein "fertig"-Text.
+   */
+  function toolbarState(found) {
+    const wantFull = !!state.ui.allPages;
+    const canFull = remote.projects.length > 0;
+    const warten = wantFull && !canFull && !remote.loaded;
+    const known = allProjects(found);
+
+    return {
+      total: known.length,
+      grouped: known.filter((p) => state.assign[p.key]).length,
+      onPage: found.rows.length,
+      groups: state.groups.length,
+      allPages: wantFull && canFull,
+      canAllPages: canFull,
+      progress: remote.progress,
+      fromCache: remote.fromCache,
+      warten,
+    };
+  }
+
+  /**
+   * Nur die Leiste aktualisieren. Waehrend des Ladens darf die Liste nicht
+   * jedes Mal neu gebaut werden - das flackert und kostet unnoetig Arbeit.
+   */
+  function updateToolbarOnly() {
+    if (!toolbar?.isConnected || !lastFound) return;
+    ui.updateToolbar(toolbar, toolbarState(lastFound));
   }
 
   function signature(found) {
@@ -92,6 +132,7 @@
       rows: found.rows.map((r) => [r.key, state.assign[r.key] || ""]),
       remote: remote.projects.length,
       allPages: !!state.ui.allPages,
+      loaded: remote.loaded,
     });
   }
 
@@ -232,19 +273,30 @@
   }
 
   function render(found) {
-    const useFull = !!state.ui.allPages && remote.loaded && remote.projects.length > 0;
+    const wantFull = !!state.ui.allPages;
+    const canFull = remote.projects.length > 0;
+
+    // Solange die Gesamtliste fehlt, waere jede Gruppierung irrefuehrend: sie
+    // zeigte nur die Eintraege dieser einen Listenseite und spraenge gleich
+    // wieder um. Also Cloudflares Liste unangetastet stehen lassen und warten.
+    const warten = wantFull && !canFull && !remote.loaded;
+
+    const useFull = wantFull && canFull;
     if (!useFull && hidden.length) restoreNative();
-    if (useFull) renderFull(found);
+
+    if (warten) renderWaiting(found);
+    else if (useFull) renderFull(found);
     else renderNative(found);
 
-    const known = allProjects(found);
-    ui.updateToolbar(toolbar, {
-      total: known.length,
-      grouped: known.filter((p) => state.assign[p.key]).length,
-      onPage: found.rows.length,
-      groups: state.groups.length,
-      allPages: useFull,
-      canAllPages: remote.loaded && remote.projects.length > 0,
+    ui.updateToolbar(toolbar, toolbarState(found));
+  }
+
+  /** Nur die Leiste, Originalliste bleibt wie sie ist. */
+  function renderWaiting(found) {
+    pauseObserver(() => {
+      for (const old of headers.values()) old.remove();
+      headers = new Map();
+      ensureToolbar(found);
     });
   }
 
@@ -423,6 +475,14 @@
     });
     watchNavigation();
     startObserver();
+
+    // Cache zuerst: die Ansicht steht sofort, der Abgleich laeuft daneben
+    const cache = await Store.loadCache(accountId).catch(() => null);
+    if (cache?.projects?.length) {
+      remote = { projects: cache.projects, errors: [], loaded: false, fromCache: true, progress: null };
+      mark("Cache", cache.projects.length);
+    }
+
     schedule();
     if (dom.isListPage()) refreshRemote();
   }

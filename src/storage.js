@@ -91,6 +91,29 @@
       });
     },
 
+    /**
+     * Projektliste zwischenspeichern, damit die Ansicht beim naechsten Besuch
+     * sofort steht. Bewusst storage.local: sync hat 8 KB pro Eintrag, und
+     * abgeleitete Daten gehoeren nicht in die Geraetesynchronisation.
+     */
+    loadCache(accountId) {
+      return new Promise((resolve) =>
+        chrome.storage.local.get(`cache:${accountId}`, (d) => {
+          const c = d[`cache:${accountId}`];
+          resolve(c && Array.isArray(c.projects) ? c : null);
+        })
+      );
+    },
+
+    saveCache(accountId, projects) {
+      return new Promise((resolve) =>
+        chrome.storage.local.set(
+          { [`cache:${accountId}`]: { projects, ts: Date.now() } },
+          resolve
+        )
+      );
+    },
+
     exportAll() {
       return new Promise((resolve) => S.get(null, resolve));
     },
