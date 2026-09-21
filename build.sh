@@ -5,6 +5,8 @@
 set -euo pipefail
 
 cd "$(dirname "$0")"
+python3 test/check-manifest.py
+
 VERSION=$(python3 -c "import json;print(json.load(open('manifest.json'))['version'])")
 OUT="dist/projektgruppen-cloudflare-$VERSION.zip"
 
